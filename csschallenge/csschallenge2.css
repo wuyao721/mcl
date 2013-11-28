@@ -1,0 +1,16 @@
+body { 
+  background-color: rgb(119,136,152);
+  font-family: sans-serif;
+  line-height: 1.1em;
+}
+h1 { font-family: Arial, sans-serif; }
+ul { text-align: center; list-style: none; line-height: 1.5em;}
+li:first-letter { font-size: 20px; font-family: Arial, sans-serif;}
+.copyright { font-size: 10px; }
+#wrap {
+  width: 800px;
+  margin: 20px auto;
+  border: 3px solid;
+  padding: 20px;
+  background-color: rgb(204,204,204);
+}

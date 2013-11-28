@@ -1,0 +1,7 @@
+body { 
+  background: rgb(91,127,189);
+  font-family: Arial;
+  line-height: 1.2em;
+}
+ul { margin: 0px 25%; }
+.copyright { font-size: 10px; }
