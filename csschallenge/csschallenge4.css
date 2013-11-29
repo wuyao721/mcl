@@ -1,0 +1,53 @@
+*  { 
+    -webkit-box-sizing: border-box;
+       -moz-box-sizing: border-box;
+            box-sizing: border-box;
+}
+
+body {
+    background-color: rgb(84,112,74);
+}
+
+#wrap { 
+    position: relative;
+    width: 800px;
+    margin: 0px auto;
+    background-color: rgb(181,182,125);
+}
+
+#header { 
+    text-align: right; 
+}
+
+#nav {
+    background-color: rgb(104,157,89);
+    border-bottom: 3px dashed white;
+}
+
+
+#nav li { 
+    list-style: none; 
+    display: inline;
+    margin: 0px 1em;
+}
+
+#sidebar {
+    position: absolute;
+    right: 0px;
+    width: 25%;
+    height: 100%;
+}
+
+#content {
+    clear: left;
+    margin-right: 25%;
+    background-color: rgb(115,143,105);
+}
+
+a:link {
+    color: blue;
+}
+
+a:visited {
+    color: purple;
+}
