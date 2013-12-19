@@ -1,4 +1,4 @@
-#content { position:relative;}
+#content { position:relative; }
 #back {width:1300px; height:1800px;}
 #pointer{width:160px; height:320px; position:absolute; top:260px; left:493px;}
 #pointer img{cursor:pointer}
