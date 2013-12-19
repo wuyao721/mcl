@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+# regular express for unicode
 
 reuc = re.compile(u'[\u4e00-\u9fa5]+$')
 def isUnicodeChinese(text):
