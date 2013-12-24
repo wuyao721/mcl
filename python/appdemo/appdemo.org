@@ -1,0 +1,16 @@
+* 我的代码库
+一个服务应用所具备的功能有：
+
+| 功能                | python       | 51lib                |
+|---------------------+--------------+----------------------|
+| 字符串 & 正则表达式 | string re    | stringdemo.py        |
+| daemon & service    | None         | daemon.py / pysvc.py |
+| 文件路径处理        | os.path      | stringdemo.py        |
+| 配置文件            | ConfigParser | configparsedemo.py   |
+| 命令行参数          | argparse     | argparsedemo.py      |
+| 操作系统环境设置    |              |                      |
+| 错误异常处理& 日志  | logging      | loggingdemo.py       |
+| 多线程&线程同步     |              |                      |
+| 数据库              |              |                      |
+| 网络通讯            |              |                      |
+| 随机数              | random       | randomdemo.py        |
