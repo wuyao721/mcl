@@ -1,29 +1,21 @@
 #!/usr/bin/env python
 
-import sys, time, argparse
-from daemon import Daemon
+import os, sys, time, argparse
 
-class ServerApplication(Daemon):
-    def run(self):
-        self.begin()
-        while True:
-            time.sleep(1)
-        self.end()
-    def begin(self):
-        pass
-    def end(self):
-        pass
+if os.name == 'nt':
+    from pysvc import PySvc as ServerApplication
+    from pysvc import main
+elif os.name == 'posix':
+    from daemon import Daemon as ServerApplication
+    from daemon import main
+else:
+    sys.stderr.write("OS NOT SUPPORT: %s\n" % (os.name, ))
+    sys.exit(1)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='A Daemon Application of Demo Writen by WuYao.')
-    parser.add_argument('-v', action='version', dest='version', version='0.51')
-    parser.add_argument("-p", action='store', dest='port')
-    parser.add_argument('command', action='store', choices=['start', 'stop', 'restart'], help='action')
-    args = parser.parse_args()
-    app = ServerApplication('/tmp/daemon-wuyao-server.pid')
-    if args.command == 'start':
-        app.start()
-    elif args.command == 'stop':
-        app.stop()
-    elif args.command == 'restart':
-        app.restart()
+if __name__ == '__main__':
+    class MyServerApp(ServerApplication):
+        def begin(self):
+            print 'begin.'
+        def end(self):
+            print 'end.'
+    main(MyServerApp)
