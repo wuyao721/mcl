@@ -1,7 +1,7 @@
 # code from http://www.chrisumbel.com/article/windows_services_in_python
-import win32service  
-import win32serviceutil  
-import win32event  
+import win32service
+import win32serviceutil
+import win32event
   
 class PySvc(win32serviceutil.ServiceFramework):  
     # you can NET START/STOP the service by the following name  
@@ -15,13 +15,13 @@ class PySvc(win32serviceutil.ServiceFramework):
     def __init__(self, args):  
         win32serviceutil.ServiceFramework.__init__(self,args)  
         # create an event to listen for stop requests on  
-        self.hWaitStop = win32event.CreateEvent(None, 0, 0, None)  
+        self.hWaitStop = win32event.CreateEvent(None, 0, 0, None)
       
     # core logic of the service     
     def SvcDoRun(self):  
         import servicemanager  
           
-        f = open('test.dat', 'w+')  
+        f = open('test.dat', 'w+')
         rc = None  
           
         # if the stop event hasn't been fired keep looping  
