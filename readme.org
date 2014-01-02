@@ -1,2 +1,35 @@
-* 我的代码库
-收集平时使用的代码
+#+OPTIONS: toc:nil ^:nil 
+#+DESCRIPTION:
+#+TITLE: 项目说明
+
+这个项目收集我平时使用的代码、小项目等等。
+
+* C & C++
+** TrayRun
+ [[http://sourceforge.net/projects/trayrun/][TrayRun]] 是sourceforge上的一个开源项目，我把它拷贝一份下来，方便自己使用。官网是这样介绍它的：
+: TrayRun is an application that allows you to force applications to run in the
+: task tray. It can be used e.g. to force applications to the task tray that
+: need to be run on Windows boot.
+
+* css challenge
+ 我在学习CSS的时候发现 [[http://en.wikiversity.org/wiki/Web_Design/CSS_challenges][css chanllenge]] ，并把实现的代码保存下来。
+
+* python
+
+** bottledemo
+bottle一个用python写的迷你网站服务器，bottledemo是我自己整理的一个小例子，方便单机网页测试，特性包括：
+ - 当文件运行 *python bottledemo.py*
+ - 支持参数（网站域名、端口）
+ - 支持加载静态文件 js, css, html, xml等等
+ - 简单的模版例子
+ - 包括了项目 [[http://html5boilerplate.com/][HTML5 Boilerplate]] 
+
+* 51proxy
+一个windows下的ssh代理工具，主要是使用plink工具来做代理的。
+
+工具的特点有：
+ - 使用简单，只设置好域名、用户名、密码即可
+ - 支持密码认证、证书认证两种方式
+ - 集成托盘图标，最小化代理程序
+
+缺点是需要一台VPS的登录名和密码。

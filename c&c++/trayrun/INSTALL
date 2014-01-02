@@ -1,0 +1,12 @@
+Installation Procedure
+======================
+
+To install TrayRun the executable TrayRun.exe needs to be copied to the Windows
+folder (e.g. C:\WINDOWS or C:\WINNT). The setup takes care of this.
+
+Applying TrayRun
+================
+
+Create a shortcut to the program you wish to run on startup and place it in
+in the Starup folder in the Start Menu. Next, change the shortcut by
+prepending the command TrayRun to the Target.

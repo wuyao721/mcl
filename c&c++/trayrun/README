@@ -1,0 +1,16 @@
+General Information
+===================
+
+TrayRun is an application that allows you to force applications to run in the
+task tray. It can be used e.g. to force applications to the task tray that
+need to be run on Windows boot.
+
+Installation
+============
+
+See the INSTALL file.
+
+Copying
+=======
+
+See the COPYING file.

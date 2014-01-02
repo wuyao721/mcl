@@ -19,8 +19,6 @@ class PySvc(win32serviceutil.ServiceFramework):
       
     def SvcDoRun(self):
         """ core logic of the service """
-        import servicemanager  
-        
         self.begin()
         rc = None  
 
@@ -44,8 +42,8 @@ class PySvc(win32serviceutil.ServiceFramework):
     def end(self):
         pass
 
-def main(pysvc):
-    win32serviceutil.HandleCommandLine(pysvc)
+def main(py):
+    win32serviceutil.HandleCommandLine(py)
 
 if __name__ == '__main__':  
     win32serviceutil.HandleCommandLine(PySvc)
