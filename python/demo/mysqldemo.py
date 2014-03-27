@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
+computer with 1cpu,4kernel,4G mem 
 mysql table t_waflogs:
 +----------+---------------+------+-----+---------+----------------+
 | Field    | Type          | Null | Key | Default | Extra          |
