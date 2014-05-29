@@ -14,14 +14,13 @@ from copy import deepcopy
 参考：http://zh.wikipedia.org/wiki/%E7%94%9F%E5%91%BD%E6%B8%B8%E6%88%8F
 '''
 
-def life_count_round(dyadicarray, i, j, width, height):
-    def islife(i, j):
-        if i >= 0 and i < width and j >= 0 and j < height:
-            return dyadicarray[i][j]
+def life_count_round(dyadicarray, row, col, width, height):
+    def islife(row, col):
+        if row >= 0 and row < height and col >= 0 and col < width:
+            return dyadicarray[row][col]
         else:
             return 0
-    return islife(i-1, j-1) + islife(i-1, j) + islife(i-1, j+1) + islife(i, j-1) + \
-        islife(i, j+1) + islife(i+1, j-1) + islife(i+1, j) + islife(i+1, j+1)
+    return sum(islife(row+i, col+j) for i in [-1, 0, 1] for j in [-1, 0, 1] if i != 0 or j != 0)
 
 def reproduct(dyadicarray, width, height):
     generation = deepcopy(dyadicarray)
