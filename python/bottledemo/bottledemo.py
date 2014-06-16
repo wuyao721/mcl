@@ -74,6 +74,11 @@ def returnjson(user):
     response.content_type = 'application/json'
     return dumps(rv)
 
+@route('/request')
+def testrequest():
+    for key, value in request.headers.iteritems():
+        print key, value
+
 parser = argparse.ArgumentParser(description='bottle web server for rotate test.')
 parser.add_argument("-s", action='store', dest='host', default='localhost', help='bind server ip or host name')
 parser.add_argument("-p", action='store', dest='port', default='8080', help='bind port')
