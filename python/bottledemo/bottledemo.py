@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from bottle import route, run, template, get, post, static_file, request
+from bottle import route, run, template, get, post, static_file, request, jinja2_view
 import argparse
 
 @get('/js/<filename:re:.*\.js>')
@@ -36,6 +36,17 @@ def index(name):
 @route('/hello2/<name>')
 def index(name):
     return template('hello.html', name=name)
+
+# use jinja2 template system
+@route('/hello3')
+@jinja2_view('hello.html', template_lookup=['views'])
+def home():
+    return {'name': 'WORLD!!!'}
+
+@route('/request')
+@jinja2_view('request.html')
+def testrequest():
+    return {'headers': request.headers}
 
 @get('/login') # or @route('/login')
 def login():
@@ -74,13 +85,10 @@ def returnjson(user):
     response.content_type = 'application/json'
     return dumps(rv)
 
-@route('/request')
-def testrequest():
-    for key, value in request.headers.iteritems():
-        print key, value
 
 parser = argparse.ArgumentParser(description='bottle web server for rotate test.')
-parser.add_argument("-s", action='store', dest='host', default='localhost', help='bind server ip or host name')
+parser.add_argument("-s", action='store', dest='host', default='127.0.0.1', help='bind server ip or host name')
+parser.add_argument("-S", action='store', dest='server', default='wsgiref', help='server adapter to use')
 parser.add_argument("-p", action='store', dest='port', default='8080', help='bind port')
 args = parser.parse_args()
-run(host=args.host, port=args.port, reloader=True)
+run(host=args.host, port=args.port, reloader=True, server=args.server)
