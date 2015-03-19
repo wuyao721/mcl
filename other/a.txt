@@ -1,0 +1,36 @@
+给一个10G大的文件排序
+
+f = 10G file
+s = 10G
+mem = 1M
+open(f)
+for i = 0; i < s; i++:
+    rand(mem)
+    write(f, mem);                                                                                                                             
+close(f)
+
+mem = 1M
+s = 1G
+f = 10G file
+l = filename list
+for i = 0; i < s; i++:
+    read(f, mem)
+    open(f1) and write(f, mem) and close(f1) and filename -> l
+
+mem1 = 1M
+mem2 = 1M
+mem3 = 2M
+while size < 10G:
+    ln = l
+    filenamelist = ln
+    ln = empty list
+    for f1, f2 in filenamelist:
+        open(f3)
+        while f1 is not eof or f2 is not eof:
+            read(f1, mem1, offset, size)
+            read(f2, mem2, offset, size)
+            mem3 = merge(mem1, mem2)
+            write(fn, mem3)
+            empty(mem3)
+        filename -> ln
+        close(fn)
