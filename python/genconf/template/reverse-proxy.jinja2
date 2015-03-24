@@ -1,0 +1,33 @@
+{% for site in sites %}upstream pool_{{site.host|replace(".", "_")}}{ {% if site.hatype == 'hash'%}    ip_hash;{% endif %}
+{% for server in site.servers %}    server {{server[0]}}:{{server[1]}} {% if site.hatype == 'weight'%}weight={{server[2]}}{% endif %} {% if site.healthcheck %}max_fails=2 fail_timeout=30s{% endif %};
+{% endfor %}}
+
+{% if site.cache %}proxy_cache_path "{{g.cachepath}}/{{site.host}}" levels=1:2 keys_zone=cache_{{site.host|replace(".", "_")}}:{{site.cache_size}} inactive=1d max_size={{site.cache_max_size}};{% endif %}
+
+server {
+    # Bind Port
+{% for port in site.ports %}    listen {{port}};
+{% endfor %}
+    # Server Name
+    server_name {{site.host}};
+    
+{% if site.cache %}    # Reverse Proxy Cache
+    proxy_cache cache_{{site.host|replace(".", "_")}};
+    proxy_cache_valid 200 304 12h;
+    proxy_cache_valid 301 302 1m;
+    proxy_cache_valid any 1m;
+    proxy_cache_key $host$uri$is_args$args;
+    proxy_temp_path "{{g.proxy_temp_path}}/{{site.host}}";{% endif %}
+    
+    # Default Proxy Policy
+    location / 
+    {
+{% if site.modsecurity %}        # ModSecurity 
+        ModSecurityEnabled on;
+        ModSecurityConfig modsecurity.conf;{% endif %}
+        # Reverse Proxy
+        proxy_pass http://pool_{{site.host|replace(".", "_")}};
+    }
+}
+
+{% endfor %}
