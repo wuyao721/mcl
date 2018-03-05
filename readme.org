@@ -11,6 +11,9 @@
 : task tray. It can be used e.g. to force applications to the task tray that
 : need to be run on Windows boot.
 
+** ourclib
+ [[https://github.com/wuyao721/51lib/tree/master/c%26c%2B%2B/ourclib/][ourclib]] 是一个C语言的库，主要目的是实现C语言下的各种常见的数据结构
+
 * css challenge
  我在学习CSS的时候发现 [[http://en.wikiversity.org/wiki/Web_Design/CSS_challenges][css chanllenge]] ，并把实现的代码保存下来。
 
