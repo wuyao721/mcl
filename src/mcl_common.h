@@ -2,8 +2,12 @@
 #define _MCL_COMMON_H_
 
 #include <math.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
+#define CACHE_LINE_SIZE  (64)
 
 enum
 {

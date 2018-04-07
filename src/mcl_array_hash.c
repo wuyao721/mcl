@@ -1,7 +1,5 @@
-#include "our_common.h"
+#include "mcl_common.h"
 #include "mcl_array_hash.h"
-
-#define LOAD_FACTOR (0.2)
 
 static inline uint32_t __pool_factor(uint32_t max)
 {
@@ -23,30 +21,29 @@ static inline uint32_t __pool_factor(uint32_t max)
     return 0;
 }
 
-static inline mcl_array_hash_entry_t* __get_node(mcl_array_hash_t *table, uint32_t idx)
-{
-    return (mcl_array_hash_entry_t *)(table->nodes + (sizeof(mcl_array_hash_entry_t) + table->entry_size) * idx);
-}
-
-uint32_t mcl_array_hash_compute_size(uint32_t entry_size, uint32_t max_cnt, uint32_t load_factor);
+uint32_t mcl_array_hash_compute_size(uint32_t entry_size, uint32_t max_cnt, float load_factor)
 {
     uint32_t cnt_bucket  = __pool_factor((uint32_t)((float)max_cnt / load_factor));
-    return sizeof(mcl_array_hash_t) + cnt_bucket * sizeof(uint32_t);
+    return sizeof(mcl_array_hash_t) + cnt_bucket * sizeof(uint8_t *);
 }
 
-uint32_t mcl_array_hash_create(void *start, uint32_t buf_size, uint32_t entry_size, uint32_t max_cnt, uint32_t load_factor)
+uint32_t mcl_array_hash_create(void *start, uint32_t buf_size, uint32_t entry_size, uint32_t max_cnt, float load_factor)
 {
     mcl_array_hash_t *table   = (mcl_array_hash_t *)start;
-    uint32_t      cnt_bucket  = __pool_factor((uint32_t)((float)cnt_max / load_factor));
-    uint32_t      size        = mcl_array_hash_compute_size(cnt_max, entry_size, load_factor);
+    uint32_t      cnt_bucket  = __pool_factor((uint32_t)((float)max_cnt / load_factor));
+    uint32_t      size        = mcl_array_hash_compute_size(entry_size, max_cnt, load_factor);
 
     if (size < buf_size) {
         return -1;
     }
+    
+    if ((CACHE_LINE_SIZE - sizeof(mcl_array_hash_entries_t)) < entry_size) {
+        return -1;
+    }
 
-    if (entry_size != table->entry_size || cnt_max != table->cnt_max  || cnt_bucket != table->cnt_bucket) {
+    if (entry_size != table->entry_size || max_cnt != table->cnt_max  || cnt_bucket != table->cnt_bucket) {
         table->entry_size          = entry_size;
-        table->cnt_max             = cnt_max;
+        table->cnt_max             = max_cnt;
         table->cnt_bucket          = cnt_bucket;
 
         mcl_array_hash_reset(table);
@@ -57,194 +54,124 @@ uint32_t mcl_array_hash_create(void *start, uint32_t buf_size, uint32_t entry_si
 
 inline void mcl_array_hash_reset(mcl_array_hash_t *table)
 {
-    table->cnt_used            = 0;
-    table->cnt_idle            = table->cnt_max;
-    table->cnt_conflict        = 0;
-    table->cnt_resize          = 0;
+    table->cnt_used             = 0;
+    table->cnt_conflict         = 0;
+    table->cnt_resize           = 0;
+    table->cnt_bucket_max_size  = CACHE_LINE_SIZE;
 }
 
-mcl_array_hash_entry_t* mcl_array_hash_find(mcl_array_hash_t *table, void *key, void *data, cb_hash hash, cb_equal equal)
+inline void* mcl_array_hash_entry(mcl_array_hash_t *table, mcl_array_hash_entries_t *entries, int entry_idx)
 {
-    mcl_array_hash_entry_t *item  = NULL;
-    register uint32_t       idx   = 0;
+    return ((void *)entries) + sizeof(mcl_array_hash_entries_t) + entry_idx * table->entry_size;
+}
 
-    if (unlikely(!table || !key || !data)) {
+void* mcl_array_hash_find(mcl_array_hash_t *table, void *key, cb_hash hash, cb_equal equal)
+{
+    mcl_array_hash_entries_t *entries  = NULL;
+    void                     *entry    = NULL;
+    int                       i        = 0;
+
+    if (unlikely(!table || !key)) {
         return NULL;
     }
 
-    idx = table->htable[hash(key) % table->cnt_bucket];
+    if (NULL == (entries = (mcl_array_hash_entries_t *)table->buckets[hash(key) % table->cnt_bucket])) {
+        return NULL;
+    }
     
-    do {
-        if (idx == 0) {
-            break;
+    for (i = 0; i < entries->cnt_used; i++) {
+        entry = mcl_array_hash_entry(table, entries, i);
+        if (likely(equal(entry, key))) {
+            return entry;
         }
-        item = __get_node(table, idx);
-        if (item->status == STATUS_USING && equal(item->data, data)) {
-            return item;
-        }
-        idx = item->next;
-        ++times;
-        if (unlikely(idx >= table->cnt_max || times >= table->cnt_max)) {
-            break;
-        }
-    } while (1);
+    }
 
     return NULL;
 }
 
-static inline uint32_t __pool_idle(mcl_array_hash_t *table)
+void* mcl_array_hash_insert(mcl_array_hash_t *table, void *key, void *value, cb_hash hash)
 {
-    uint32_t           times     = 0;
-    mcl_array_hash_entry_t *item      = NULL;
+    mcl_array_hash_entries_t *entries = NULL;
+    void                     *entry = NULL;
 
-    do {
-        if (unlikely(table->idle_idx > table->cnt_max)) {
-            table->idle_idx = 1;
+    if (!table || !key || !value) {
+        return NULL;
+    }
+
+    if (table->cnt_used >= table->cnt_max) {
+        return NULL;
+    }
+
+    if (NULL == table->buckets[hash(key) % table->cnt_bucket]) {
+        if (NULL == (entries = calloc(1, CACHE_LINE_SIZE))) {
+            return NULL;
         }
-        item = __get_node(table, table->idle_idx);
-        if (likely(item->status == STATUS_NOT_USED)) {
-            item->status = STATUS_USING;
-            return table->idle_idx++;
-        } else {
-            table->idle_idx++;
+        entries->size = CACHE_LINE_SIZE;
+        entries->cnt_max = (CACHE_LINE_SIZE - sizeof(mcl_array_hash_entries_t)) / table->entry_size;
+        entries->cnt_used = 1;
+        entry = entries->data;
+        table->buckets[hash(key) % table->cnt_bucket] = (uint8_t *)entries;
+    } else {
+        entries = (mcl_array_hash_entries_t *)table->buckets[hash(key) % table->cnt_bucket];
+        if (entries->cnt_max == entries->cnt_used) {
+            if (NULL == (entries = (mcl_array_hash_entries_t *)realloc(entries, entries->size * 2))) { // not multi-thread safe
+                return NULL;
+            }
+            table->cnt_conflict++;
+            if (entries->size * 2 > table->cnt_bucket_max_size) {
+                table->cnt_bucket_max_size = entries->size;
+            }
+            entries->size *= 2;
+            entries->cnt_max = (entries->size - sizeof(mcl_array_hash_entries_t)) / table->entry_size;
+            table->buckets[hash(key) % table->cnt_bucket] = (uint8_t *)entries;
         }
-    } while (likely(++times < table->cnt_max));
-
-    return 0;
-}
-
-static inline mcl_array_hash_entry_t* pool_idle(mcl_array_hash_t *table, uint32_t hash_value)
-{
-    uint32_t           idx       = hash_value;
-    uint32_t           idle_idx  = 0;
-    mcl_array_hash_entry_t *item      = NULL;
-    mcl_array_hash_entry_t *item_new  = NULL;
-
-    // no idle node
-    if (0 == (idle_idx = __pool_idle(table))) {
-        return NULL;
+        entry = entries->data + entries->cnt_used * table->entry_size;
+        entries->cnt_used++;
+        table->cnt_conflict++;
     }
 
-    // list is empty
-    if (likely(table->htable[idx]) == 0) {
-        item = __get_node(table, idle_idx);
-        item->prev = 0;
-        item->next = 0;
-
-        CVMX_SYNCW;
-        table->htable[idx] = idle_idx;
-        return item;
-    }
-
-    idx = table->htable[idx];         // "idx of htable" and "idx of nodes"
-    item = __get_node(table, idx);
-    while (item->next) {
-        idx  = item->next;
-        item = __get_node(table, idx);
-    }
-
-    item_new = __get_node(table, idle_idx);
-    item_new->next = 0;
-    item_new->prev = idx;
-    //table->cnt_conflict++;
-
-    CVMX_SYNCW;
-    item->next = idle_idx;
-    return item_new;
-}
-
-mcl_array_hash_entry_t* mcl_array_hash_insert(mcl_array_hash_t *table, void *key, void *data, cb_hash hash)
-{
-    mcl_array_hash_entry_t *item = NULL;
-
-    if (!table || table->cnt_max == 0 || !key || !data) {
-        return NULL;
-    }
-
-    item = pool_idle(table, hash(key) % table->cnt_bucket);
-    if (unlikely(NULL == item)) {
-        return NULL;
-    }
     ++table->cnt_used;
-    --table->cnt_idle;
     
-    memcpy(item->data, data, table->entry_size);
-    return item;
+    memcpy(entry, value, table->entry_size);
+    return entry;
 }
 
-int mcl_array_hash_del(mcl_array_hash_t *table, void *key, void *data, cb_hash hash, cb_equal equal)
+static void* __mcl_array_hash_get_one(mcl_array_hash_t *table, mcl_array_hash_iter_t *iter)
 {
-    mcl_array_hash_entry_t *item  = NULL;
-
-    if (NULL == (item = mcl_array_hash_find(table, key, data, hash, equal))) {
-        return -1;
-    }
-
-    item->status == STATUS_NOT_USED;
-    CVMX_SYNCW;
-    return 0;
-}
-
-void mcl_array_hash_show(mcl_array_hash_t *table, void cb(void *))
-{
-    uint32_t           i;
-    mcl_array_hash_entry_t *item = NULL;
-
-    printf("shared hash table addr: %p\n", table);
-    //printf("cnt_max: %u, used: %u, idle: %u, conflict: %u\n",
-    //       table->cnt_max, table->cnt_used, table->cnt_idle, table->cnt_conflict);
-    printf("cnt_max: %u, used: %u, idle: %u\n",
-           table->cnt_max, table->cnt_used, table->cnt_idle);
-    printf("data size: %u, cnt_bucket: %u, idle_idx: %u\n", 
-           table->entry_size, table->cnt_bucket,  table->idle_idx);
-    printf("\n");
-
-    for (i = 1; i < table->idle_idx; i++) {
-        item = __get_node(table, i);
-        if (item->status == STATUS_USING) {
-            printf("idx: %d, ", i);
-            cb(item->data);
+    mcl_array_hash_entries_t *entries = NULL;
+    void                     *entry   = NULL;
+    
+    for (; iter->bucket_idx < table->cnt_bucket; (iter->bucket_idx)++) {
+        if (NULL != (entries = (mcl_array_hash_entries_t *)table->buckets[iter->bucket_idx])) {
+            for (; iter->entry_idx < entries->cnt_used; (iter->entry_idx)++) {
+                entry = entries->data + table->entry_size * iter->entry_idx;
+                (iter->entry_idx)++;
+                return entry;
+            }
         }
-    } 
+    }
+    
+    return NULL;
 }
 
-mcl_array_hash_entry_t* mcl_array_hash_get_first(mcl_array_hash_t *table, mcl_array_hash_iter_t *iter)
+void* mcl_array_hash_get_first(mcl_array_hash_t *table, mcl_array_hash_iter_t *iter)
 {
-    mcl_array_hash_entry_t *item = NULL;
-
     if (table == NULL || iter == NULL) {
         return NULL;
     }
-
-    iter->table = table;
-    iter->idx   = 1;
-
-    for (; i < table->cnt_max; (iter->idx)++) {
-        item = __get_node(table, iter->idx);
-        if (item->status == STATUS_USING) {
-            ++(iter->idx);
-            return item;
-        }
-    }
     
-    return NULL;
+    iter->table       = table;
+    iter->bucket_idx  = 0;
+    iter->entry_idx   = 0;
+    
+    return __mcl_array_hash_get_one(table, iter);
 }
 
-mcl_array_hash_entry_t* mcl_array_hash_get_next(mcl_array_hash_iter_t *iter)
+void* mcl_array_hash_get_next(mcl_array_hash_iter_t *iter)
 {
-    mcl_array_hash_entry_t *item = NULL;
-
     if (iter == NULL) {
         return NULL;
     }
-
-    for (; i < iter->table->cnt_max; (iter->idx)++) {
-        item = __get_node(table, iter->idx);
-        if (item->status == STATUS_USING) {
-            ++(iter->idx);
-            return item;
-        }
-    }
     
-    return NULL;
+    return __mcl_array_hash_get_one(iter->table, iter);
 }
